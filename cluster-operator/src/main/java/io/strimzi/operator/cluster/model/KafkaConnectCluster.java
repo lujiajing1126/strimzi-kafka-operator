@@ -15,6 +15,7 @@ import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.EnvVarSource;
 import io.fabric8.kubernetes.api.model.EnvVarSourceBuilder;
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.HostPathVolumeSource;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.SecretVolumeSource;
 import io.fabric8.kubernetes.api.model.Service;
@@ -386,7 +387,7 @@ public class KafkaConnectCluster extends AbstractModel implements SupportsMetric
         return volumeList;
     }
 
-    @SuppressWarnings("deprecation") // External Configuration volumes are deprecated
+    @SuppressWarnings({"deprecation", "unchecked"}) // External Configuration volumes are deprecated
     private List<Volume> getExternalConfigurationVolumes(boolean isOpenShift)  {
         int mode = 0444;
         if (isOpenShift) {
@@ -399,8 +400,8 @@ public class KafkaConnectCluster extends AbstractModel implements SupportsMetric
             String name = volume.getName();
 
             if (name != null) {
-                if (volume.getConfigMap() != null && volume.getSecret() != null) {
-                    LOGGER.warnCr(reconciliation, "Volume {} with external Kafka Connect configuration has to contain exactly one volume source reference to either ConfigMap or Secret", name);
+                if (volume.getConfigMap() != null && volume.getSecret() != null && !volume.getAdditionalProperties().isEmpty()) {
+                    LOGGER.warnCr(reconciliation, "Volume {} with external Kafka Connect configuration has to contain exactly one volume source reference to either ConfigMap, Secret or HostPath", name);
                 } else  {
                     if (volume.getConfigMap() != null) {
                         ConfigMapVolumeSource source = volume.getConfigMap();
@@ -419,6 +420,16 @@ public class KafkaConnectCluster extends AbstractModel implements SupportsMetric
                         Volume newVol = new VolumeBuilder()
                                 .withName(VolumeUtils.getValidVolumeName(EXTERNAL_CONFIGURATION_VOLUME_NAME_PREFIX + name))
                                 .withSecret(source)
+                                .build();
+
+                        volumeList.add(newVol);
+                    } else if (volume.getAdditionalProperties().size() == 1 && volume.getAdditionalProperties().containsKey("hostPath")) {
+                        String hostPath = (String) ((Map<String, Object>) volume.getAdditionalProperties().get("hostPath")).get("path");
+                        String type = (String) ((Map<String, Object>) volume.getAdditionalProperties().get("hostPath")).get("type");
+
+                        Volume newVol = new VolumeBuilder()
+                                .withName(VolumeUtils.getValidVolumeName(EXTERNAL_CONFIGURATION_VOLUME_NAME_PREFIX + name))
+                                .withHostPath(new HostPathVolumeSource(hostPath, type))
                                 .build();
 
                         volumeList.add(newVol);
@@ -457,7 +468,7 @@ public class KafkaConnectCluster extends AbstractModel implements SupportsMetric
         return volumeMountList;
     }
 
-    @SuppressWarnings("deprecation") // External Configuration volumes are deprecated
+    @SuppressWarnings({"deprecation", "unchecked"}) // External Configuration volumes are deprecated
     private List<VolumeMount> getExternalConfigurationVolumeMounts()    {
         List<VolumeMount> volumeMountList = new ArrayList<>(0);
 
@@ -471,6 +482,15 @@ public class KafkaConnectCluster extends AbstractModel implements SupportsMetric
                     VolumeMount volumeMount = new VolumeMountBuilder()
                             .withName(VolumeUtils.getValidVolumeName(EXTERNAL_CONFIGURATION_VOLUME_NAME_PREFIX + name))
                             .withMountPath(EXTERNAL_CONFIGURATION_VOLUME_MOUNT_BASE_PATH + name)
+                            .build();
+
+                    volumeMountList.add(volumeMount);
+                } else if (volume.getAdditionalProperties().size() == 1 && volume.getAdditionalProperties().containsKey("hostPath")) {
+                    String mountPath = (String) ((Map<String, Object>) volume.getAdditionalProperties().get("hostPath")).get("mountPath");
+
+                    VolumeMount volumeMount = new VolumeMountBuilder()
+                            .withName(VolumeUtils.getValidVolumeName(EXTERNAL_CONFIGURATION_VOLUME_NAME_PREFIX + name))
+                            .withMountPath(mountPath)
                             .build();
 
                     volumeMountList.add(volumeMount);
