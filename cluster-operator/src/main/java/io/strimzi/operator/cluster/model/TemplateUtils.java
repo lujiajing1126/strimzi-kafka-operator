@@ -4,6 +4,7 @@
  */
 package io.strimzi.operator.cluster.model;
 
+import io.fabric8.kubernetes.api.model.HostPathVolumeSource;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
@@ -130,6 +131,12 @@ public class TemplateUtils {
             volumeBuilder.withPersistentVolumeClaim(volumeConfig.getPersistentVolumeClaim());
         } else if (volumeConfig.getCsi() != null) {
             volumeBuilder.withCsi(volumeConfig.getCsi());
+        } else if (!volumeConfig.getAdditionalProperties().isEmpty()) {
+            if (volumeConfig.getAdditionalProperties().size() == 1 && volumeConfig.getAdditionalProperties().containsKey("hostPath")) {
+                String hostPath = (String) ((Map<String, Object>) volumeConfig.getAdditionalProperties().get("hostPath")).get("path");
+                String type = (String) ((Map<String, Object>) volumeConfig.getAdditionalProperties().get("hostPath")).get("type");
+                volumeBuilder.withHostPath(new HostPathVolumeSource(hostPath, type));
+            }
         }
 
         return volumeBuilder.build();

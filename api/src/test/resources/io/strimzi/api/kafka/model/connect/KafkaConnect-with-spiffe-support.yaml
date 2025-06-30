@@ -1,0 +1,14 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: test-kafka-connect
+spec:
+  bootstrapServers: kafka:9092
+  template:
+    pod:
+      volumes:
+        - name: secret-volume
+          hostPath:
+            mountPath: /run/spire/sockets
+            type: ''
+            path: /run/spire/sockets
