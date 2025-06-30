@@ -119,6 +119,7 @@ public class TemplateUtils {
      * @param volumeConfig The configuration for the additional volume
      * @return A Volume object
      */
+    @SuppressWarnings({"unchecked"})
     private static Volume createVolumeFromConfig(AdditionalVolume volumeConfig) {
         VolumeBuilder volumeBuilder = new VolumeBuilder().withName(volumeConfig.getName());
         if (volumeConfig.getConfigMap() != null) {
