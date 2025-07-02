@@ -28,7 +28,7 @@ public class TemplateUtils {
      * This is a constant that represents an allowed mountable path in the file system.
      * It is used to prevent the creation of volumes outside this path.
      */
-    protected static final String ALLOWED_MOUNT_PATH = "/mnt";
+    protected static final Pattern ALLOWED_MOUNT_PATH = Pattern.compile("^/mnt|^/run/spire");
     /**
      * This Pattern defines a regex for validating volume names with the following criteria:
      * Length: Must contain at most 63 characters.
@@ -104,7 +104,7 @@ public class TemplateUtils {
             return;
         }
 
-        boolean isForbiddenPath = containerTemplate.getVolumeMounts().stream().anyMatch(additionalVolume -> !additionalVolume.getMountPath().startsWith(ALLOWED_MOUNT_PATH));
+        boolean isForbiddenPath = containerTemplate.getVolumeMounts().stream().anyMatch(additionalVolume -> !ALLOWED_MOUNT_PATH.matcher(additionalVolume.getMountPath()).find());
 
         if (isForbiddenPath) {
             throw new InvalidResourceException(String.format("Forbidden path found in additional volumes. Should start with %s", ALLOWED_MOUNT_PATH));
